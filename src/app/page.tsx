@@ -1,113 +1,162 @@
-import Image from 'next/image'
+'use client';
+
+import { DELETE_CONTACT, GET_CONTACT_LIST } from '@/const';
+import { useQuery, gql, QueryResult, useMutation } from '@apollo/client';
+import { useEffect, useState } from 'react';
+import { FaPen, FaPlus, FaStar, FaTrash, FaXmark } from 'react-icons/fa6';
+import { AiOutlineStar } from 'react-icons/ai';
+import AddContactForm from './form/add-contact';
+import Swal from 'sweetalert2';
 
 export default function Home() {
+  const [index, setIndex] = useState(0);
+  const [add, setAdd] = useState(false);
+  const [edit, setEdit] = useState<ListContact>();
+  const [deleteContactMutation] = useMutation(DELETE_CONTACT);
+  const [data, setData] = useState<{
+    contact: ListContact[];
+    contact_aggregate: JumlahContact;
+  }>({
+    contact: [],
+    contact_aggregate: { aggregate: { count: 0 } },
+  });
+
+  const handleEdit = (contact: ListContact) => {
+    setAdd(true);
+    setEdit(contact);
+  };
+
+  const handleDelete = async (contact: ListContact) => {
+    const result = await Swal.fire({
+      title: `Do you want to delete ${contact.first_name}?`,
+      showCancelButton: true,
+      confirmButtonColor: 'red',
+      confirmButtonText: 'Delete',
+      focusCancel: true,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const { data } = await deleteContactMutation({
+          variables: {
+            id: contact.id,
+          },
+        });
+
+        console.log('Contact delete:', data);
+        refetch({ limit: 10, offset: index * 10 });
+        Swal.fire('Delete!', '', 'success');
+      } catch (error: any) {
+        console.error('Error deleting contact:', error.message);
+        Swal.fire(
+          'Error',
+          'An error occurred while deleting the contact.',
+          'error'
+        );
+      }
+    } else if (
+      result.isDismissed &&
+      result.dismiss === Swal.DismissReason.cancel
+    ) {
+      Swal.fire('Changes are not saved', '', 'info');
+    }
+  };
+
+  const {
+    loading,
+    error,
+    data: queryData,
+    refetch,
+  }: QueryResult<{
+    contact: ListContact[];
+    contact_aggregate: JumlahContact;
+  }> = useQuery(GET_CONTACT_LIST, {
+    variables: {
+      limit: 10,
+      offset: index * 10,
+    },
+  });
+
+  useEffect(() => {
+    const dataLocal = JSON.parse(localStorage.getItem('dataContactList')!) || {
+      contact: [],
+      contact_aggregate: { aggregate: { count: 0 } },
+    };
+
+    if (queryData) {
+      setData(queryData);
+
+      localStorage.setItem('dataContactList', JSON.stringify(queryData));
+      refetch({ limit: 10, offset: index * 10 });
+    } else {
+      setData(dataLocal);
+    }
+  }, [queryData, index, refetch]);
+
+  const { contact, contact_aggregate } = data;
+  const contactList = contact || [];
+  const contactCount = contact_aggregate?.aggregate?.count || 0;
+
+  if (loading && !data.contact.length) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className='m-5'>
+      <section>
+        <h1>Favorite List</h1>
+        <p>Such an empty</p>
+      </section>
+
+      <hr className='my-5' />
+
+      <section>
+        <h1>Contact List</h1>
+
+        <div className='grid gap-2 sm:grid-cols-2 mt-3'>
+          <input className='sm:mr-auto' type='text' name='' id='' />
+          <button
+            className='border rounded-lg sm:ml-auto sm:mr-0'
+            onClick={() => setAdd(!add)}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            {add ? <FaXmark /> : <FaPlus />} Contact
+          </button>
         </div>
-      </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+        {add ? <AddContactForm value={edit} /> : null}
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-5 my-5'>
+          {contactList.map((contact: ListContact) => (
+            <div key={contact.id} className='border rounded-lg py-3 px-5'>
+              <p>
+                {contact.first_name} ({contact.last_name})
+              </p>
+              <p>{contact.phones[0]?.number ?? '-'}</p>
+              <div className='flex gap-1 ml-[-6px] mt-2'>
+                <button className='p-2'>
+                  <FaStar style={{ fill: 'orange' }} />
+                </button>
+                <button className='p-2' onClick={() => handleEdit(contact)}>
+                  <FaPen style={{ fill: 'blue' }} />
+                </button>
+                <button className='p-2' onClick={() => handleDelete(contact)}>
+                  <FaTrash style={{ fill: 'red' }} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+        <div className='w-fit mx-auto flex gap-3'>
+          {Array.from({ length: Math.ceil(contactCount / 10) }, (_, index) => (
+            <a
+              className='border rounded-lg px-4 py-2 cursor-pointer'
+              key={index + 1}
+              onClick={() => setIndex(index)}
+            >
+              {index + 1}
+            </a>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }
