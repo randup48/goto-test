@@ -3,7 +3,14 @@
 import { DELETE_CONTACT, GET_CONTACT_LIST } from '@/const';
 import { useQuery, gql, QueryResult, useMutation } from '@apollo/client';
 import { useEffect, useState } from 'react';
-import { FaPen, FaPlus, FaStar, FaTrash, FaXmark } from 'react-icons/fa6';
+import {
+  FaCircleChevronRight,
+  FaPen,
+  FaPlus,
+  FaStar,
+  FaTrash,
+  FaXmark,
+} from 'react-icons/fa6';
 import { AiOutlineStar } from 'react-icons/ai';
 import AddContactForm from './form/add-contact';
 import Swal from 'sweetalert2';
@@ -102,14 +109,12 @@ export default function Home() {
   return (
     <div className='m-5'>
       <section>
-        <h1>Favorite List</h1>
+        <h1 className='text-xl font-bold'>Favorite List</h1>
         <p>Such an empty</p>
       </section>
 
-      <hr className='my-5' />
-
       <section>
-        <h1>Contact List</h1>
+        <h1 className='text-xl font-bold'>Contact List</h1>
 
         <div className='grid gap-2 sm:grid-cols-2 mt-3'>
           <input className='sm:mr-auto' type='text' name='' id='' />
@@ -123,24 +128,29 @@ export default function Home() {
 
         {add ? <AddContactForm value={edit} /> : null}
 
-        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-5 my-5'>
+        <div className='grid md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-5 my-5'>
           {contactList.map((contact: ListContact) => (
-            <div key={contact.id} className='border rounded-lg py-3 px-5'>
-              <p>
-                {contact.first_name} ({contact.last_name})
-              </p>
-              <p>{contact.phones[0]?.number ?? '-'}</p>
-              <div className='flex gap-1 ml-[-6px] mt-2'>
-                <button className='p-2'>
-                  <FaStar style={{ fill: 'orange' }} />
-                </button>
-                <button className='p-2' onClick={() => handleEdit(contact)}>
-                  <FaPen style={{ fill: 'blue' }} />
-                </button>
-                <button className='p-2' onClick={() => handleDelete(contact)}>
-                  <FaTrash style={{ fill: 'red' }} />
+            <div>
+              <div
+                key={contact.id}
+                className='grid gap-3 grid-cols-[48px_1fr_48px] mb-3'
+              >
+                <p className='text-xl font-bold bg-gray-200 flex items-center justify-center rounded-md aspect-square'>
+                  {contact.first_name[0].toUpperCase()}
+                </p>
+                <div>
+                  <p className='text-base whitespace-nowrap text-ellipsis'>
+                    {contact.first_name} ({contact.last_name})
+                  </p>
+                  <p className='text-sm text-gray-500'>
+                    {contact.phones[0]?.number ?? '-'}
+                  </p>
+                </div>
+                <button>
+                  <FaCircleChevronRight />
                 </button>
               </div>
+              <hr />
             </div>
           ))}
         </div>
