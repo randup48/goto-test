@@ -6,6 +6,7 @@ interface ListContact {
   phones: {
     number: string;
   }[];
+  favorite?: boolean;
 }
 
 interface JumlahContact {

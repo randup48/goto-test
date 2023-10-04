@@ -31,6 +31,20 @@ const GET_CONTACT_LIST = gql`
   }
 `;
 
+const GET_CONTACT_DETAIL = gql`
+  query GetContactDetail($id: Int!) {
+    contact_by_pk(id: $id) {
+      last_name
+      id
+      first_name
+      created_at
+      phones {
+        number
+      }
+    }
+  }
+`;
+
 const GET_PHONE_LIST = gql`
   query GetPhoneList(
     $where: phone_bool_exp
@@ -96,4 +110,10 @@ const DELETE_CONTACT = gql`
   }
 `;
 
-export { GET_CONTACT_LIST, GET_PHONE_LIST, ADD_CONTACT, DELETE_CONTACT };
+export {
+  GET_CONTACT_LIST,
+  GET_CONTACT_DETAIL,
+  GET_PHONE_LIST,
+  ADD_CONTACT,
+  DELETE_CONTACT,
+};
