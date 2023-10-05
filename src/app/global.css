@@ -2,11 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-peach;
+}
+
 button {
-  @apply flex justify-center items-center gap-3 px-4 py-1 rounded-lg hover:bg-gray-100;
+  @apply flex justify-center items-center gap-3 px-4 py-1 rounded-lg hover:bg-[#d7d5cc];
 }
 button.primaryBtn {
-  @apply bg-green-900 text-white hover:bg-green-950;
+  @apply bg-orange text-white hover:bg-orange-950;
 }
 button.outlineBtn {
   @apply border hover:bg-[unset];
@@ -17,4 +21,14 @@ button.icon {
 
 input {
   @apply border rounded-lg py-1 px-3;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  @apply text-[#6F5643];
 }

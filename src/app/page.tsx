@@ -17,10 +17,7 @@ import Swal from 'sweetalert2';
 import Link from 'next/link';
 
 export default function Home() {
-  const [index, setIndex] = useState(0);
-  const [add, setAdd] = useState(false);
-  const [edit, setEdit] = useState<ListContact>();
-  const [deleteContactMutation] = useMutation(DELETE_CONTACT);
+  const [indexed, setIndexed] = useState(0);
   const [data, setData] = useState<{
     contact: ListContact[];
     contact_aggregate: JumlahContact;
@@ -28,47 +25,6 @@ export default function Home() {
     contact: [],
     contact_aggregate: { aggregate: { count: 0 } },
   });
-
-  const handleEdit = (contact: ListContact) => {
-    setAdd(true);
-    setEdit(contact);
-  };
-
-  const handleDelete = async (contact: ListContact) => {
-    const result = await Swal.fire({
-      title: `Do you want to delete ${contact.first_name}?`,
-      showCancelButton: true,
-      confirmButtonColor: 'red',
-      confirmButtonText: 'Delete',
-      focusCancel: true,
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const { data } = await deleteContactMutation({
-          variables: {
-            id: contact.id,
-          },
-        });
-
-        console.log('Contact delete:', data);
-        refetch({ limit: 10, offset: index * 10 });
-        Swal.fire('Delete!', '', 'success');
-      } catch (error: any) {
-        console.error('Error deleting contact:', error.message);
-        Swal.fire(
-          'Error',
-          'An error occurred while deleting the contact.',
-          'error'
-        );
-      }
-    } else if (
-      result.isDismissed &&
-      result.dismiss === Swal.DismissReason.cancel
-    ) {
-      Swal.fire('Changes are not saved', '', 'info');
-    }
-  };
 
   const {
     loading,
@@ -81,7 +37,7 @@ export default function Home() {
   }> = useQuery(GET_CONTACT_LIST, {
     variables: {
       limit: 10,
-      offset: index * 10,
+      offset: indexed * 10,
     },
   });
 
@@ -95,11 +51,11 @@ export default function Home() {
       setData(queryData);
 
       localStorage.setItem('dataContactList', JSON.stringify(queryData));
-      refetch({ limit: 10, offset: index * 10 });
+      refetch({ limit: 10, offset: indexed * 10 });
     } else {
       setData(dataLocal);
     }
-  }, [queryData, index, refetch]);
+  }, [queryData, indexed, refetch]);
 
   const { contact, contact_aggregate } = data;
   const contactList = contact.map(item => ({ ...item, favorite: false }));
@@ -108,8 +64,8 @@ export default function Home() {
   if (loading && !data.contact.length) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
   return (
-    <div className='m-5 mx-auto max-w-screen-xl'>
-      <section>
+    <div className='p-5 mx-auto max-w-screen-xl'>
+      <section className='mb-5'>
         <h1 className='text-xl font-bold'>Favorite List</h1>
         <p>Such an empty</p>
       </section>
@@ -117,40 +73,38 @@ export default function Home() {
       <section>
         <h1 className='text-xl font-bold'>Contact List</h1>
 
-        <div className='grid gap-2 sm:grid-cols-2 mt-3'>
+        <div className='grid gap-2 grid-cols-1 sm:grid-cols-2 mt-3'>
           <input className='sm:mr-auto' type='text' name='' id='' />
           <Link href={'add'}>
             <button
-              className='primaryBtn sm:ml-auto sm:mr-0'
+              className='primaryBtn sm:ml-auto'
               // onClick={() => setAdd(!add)}
             >
-              {add ? <FaXmark /> : <FaPlus />} Contact
+              <FaPlus /> Contact
             </button>
           </Link>
         </div>
 
-        {add ? <AddContactForm value={edit} /> : null}
-
-        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 my-5'>
-          {contactList.map((contact: ListContact, index: number) => (
+        <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-5 my-5'>
+          {contactList.map(contact => (
             <div
               key={contact.id}
-              className='grid gap-3 grid-cols-[48px_1fr_48px] mb-3 border border-gray rounded-lg'
+              className='grid items-center gap-3 grid-cols-[48px_1fr_auto] mb-3 sm:mb-0 rounded-lg'
             >
-              <p className='text-xl font-bold bg-gray-200 flex items-center justify-center rounded-md aspect-square'>
+              <p className='text-xl font-bold bg-green flex items-center justify-center rounded-full aspect-square'>
                 {contact.first_name[0].toUpperCase()}
               </p>
               <div>
-                <p className='text-base'>
+                <p className='font-semibold'>
                   {contact.first_name} ({contact.last_name})
                 </p>
-                <p className='text-sm text-gray-500'>
-                  {contact.phones[0]?.number ?? '-'}
-                </p>
+                <p className='text-sm'>{contact.phones[0]?.number ?? '-'}</p>
               </div>
               <Link href={`${contact.id}`}>
-                <button>
-                  <FaCircleChevronRight />
+                <button className='w-[48px] h-[48px]'>
+                  <p>
+                    <FaCircleChevronRight />
+                  </p>
                 </button>
               </Link>
             </div>
@@ -160,11 +114,13 @@ export default function Home() {
         <div className='w-fit mx-auto flex gap-3'>
           {Array.from({ length: Math.ceil(contactCount / 10) }, (_, index) => (
             <a
-              className='border rounded-lg px-4 py-2 cursor-pointer'
+              className={`border ${
+                indexed === index ? 'bg-green' : ''
+              } rounded-lg px-4 py-2 cursor-pointer`}
               key={index + 1}
-              onClick={() => setIndex(index)}
+              onClick={() => setIndexed(index)}
             >
-              {index + 1}
+              <p> {index + 1}</p>
             </a>
           ))}
         </div>
