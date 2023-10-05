@@ -119,17 +119,19 @@ export default function Home() {
 
         <div className='grid gap-2 sm:grid-cols-2 mt-3'>
           <input className='sm:mr-auto' type='text' name='' id='' />
-          <button
-            className='border rounded-lg sm:ml-auto sm:mr-0'
-            onClick={() => setAdd(!add)}
-          >
-            {add ? <FaXmark /> : <FaPlus />} Contact
-          </button>
+          <Link href={'add'}>
+            <button
+              className='primaryBtn sm:ml-auto sm:mr-0'
+              // onClick={() => setAdd(!add)}
+            >
+              {add ? <FaXmark /> : <FaPlus />} Contact
+            </button>
+          </Link>
         </div>
 
         {add ? <AddContactForm value={edit} /> : null}
 
-        <div className='grid md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-5 my-5'>
+        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 my-5'>
           {contactList.map((contact: ListContact, index: number) => (
             <div
               key={contact.id}
@@ -146,11 +148,11 @@ export default function Home() {
                   {contact.phones[0]?.number ?? '-'}
                 </p>
               </div>
-              <button>
-                <Link href={`${contact.id}`}>
+              <Link href={`${contact.id}`}>
+                <button>
                   <FaCircleChevronRight />
-                </Link>
-              </button>
+                </button>
+              </Link>
             </div>
           ))}
         </div>

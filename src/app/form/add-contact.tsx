@@ -115,37 +115,39 @@ const AddContactForm = ({ value }: { value?: ListContact }) => {
         </label>
         <label>
           Phone Numbers:
-          {phoneNumbers.map((phoneNumber, index) => (
-            <div key={index} className='flex gap-1 items-center'>
-              <input
-                className='mb-1'
-                name='number'
-                type='number'
-                value={phoneNumber}
-                disabled={value ? true : false}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handlePhoneNumberChange(index, e.target.value)
-                }
-              />
-              {!value && index > 0 && (
-                <button
-                  type='button'
-                  onClick={() => handleRemovePhoneNumber(index)}
-                >
-                  <FaTrash />
-                </button>
-              )}
-            </div>
-          ))}
-          {!value && (
-            <button
-              type='button'
-              onClick={handleAddPhoneNumber}
-              className='px-1'
-            >
-              <FaPlus /> Phone Number
-            </button>
-          )}
+          <>
+            {phoneNumbers.map((phoneNumber, index) => (
+              <div key={index} className='flex gap-1 items-center'>
+                <input
+                  className='mb-1'
+                  name='number'
+                  type='number'
+                  value={phoneNumber}
+                  disabled={value ? true : false}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    handlePhoneNumberChange(index, e.target.value)
+                  }
+                />
+                {!value && index > 0 && (
+                  <button
+                    type='button'
+                    onClick={() => handleRemovePhoneNumber(index)}
+                  >
+                    <FaTrash />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!value && (
+              <button
+                type='button'
+                onClick={handleAddPhoneNumber}
+                className='px-1'
+              >
+                <FaPlus /> Phone Number
+              </button>
+            )}
+          </>
         </label>
       </div>
       <button className='ml-auto mr-0 border rounded-lg ' type='submit'>
