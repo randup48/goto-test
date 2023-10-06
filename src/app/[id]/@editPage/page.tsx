@@ -1,11 +1,19 @@
 'use client';
 
-import { DELETE_CONTACT, GET_CONTACT_DETAIL } from '@/const';
+import { DELETE_CONTACT, EDIT_CONTACT, GET_CONTACT_DETAIL } from '@/const';
 import { QueryResult, useMutation, useQuery } from '@apollo/client';
 import { useParams, useRouter } from 'next/navigation';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { FaPen, FaPlus, FaSdCard, FaTrash, FaXmark } from 'react-icons/fa6';
+import {
+  FaPen,
+  FaPlus,
+  FaSdCard,
+  FaStar,
+  FaTrash,
+  FaXmark,
+} from 'react-icons/fa6';
 import Swal from 'sweetalert2';
+import { EditPageController } from './controller';
 
 type Props = {};
 
@@ -15,9 +23,13 @@ const Page = () => {
   const [edit, setEdit] = useState(false);
   const [contact, setContact] = useState<ListContact>();
   const [deleteContactMutation] = useMutation(DELETE_CONTACT);
+  const [editContactMutation] = useMutation(EDIT_CONTACT);
   const firstNameRef = useRef<HTMLInputElement | null>(null);
   const lastNameRef = useRef<HTMLInputElement | null>(null);
-  const [phoneNumbers, setPhoneNumbers] = useState<string[]>(['']);
+  const [phoneNumbers, setPhoneNumbers] = useState<
+    { number: string; delete: boolean }[]
+  >([{ number: '', delete: true }]);
+  const _controllers = new EditPageController();
 
   const {
     loading,
@@ -31,21 +43,14 @@ const Page = () => {
     },
   });
 
-  useEffect(() => {
-    if (data) {
-      setContact(data.contact_by_pk);
-      setPhoneNumbers(data.contact_by_pk.phones.map(item => item.number));
-    }
-  }, [data]);
-
   const handlePhoneNumberChange = (index: number, value: string) => {
     const updatedPhoneNumbers = [...phoneNumbers];
-    updatedPhoneNumbers[index] = value;
+    updatedPhoneNumbers[index].number = value;
     setPhoneNumbers(updatedPhoneNumbers);
   };
 
   const handleAddPhoneNumber = () => {
-    setPhoneNumbers([...phoneNumbers, '']);
+    setPhoneNumbers([...phoneNumbers, { number: '', delete: true }]);
   };
 
   const handleRemovePhoneNumber = (index: number) => {
@@ -54,68 +59,63 @@ const Page = () => {
   };
 
   const handleDelete = async (contact: ListContact) => {
-    const result = await Swal.fire({
-      title: `Do you want to delete ${contact.first_name}?`,
-      showCancelButton: true,
-      confirmButtonColor: 'red',
-      confirmButtonText: 'Delete',
-      focusCancel: true,
+    const deleteContact: boolean = await _controllers.deleteContact({
+      dataContact: contact,
+      method: deleteContactMutation({
+        variables: {
+          id: contact.id,
+        },
+      }),
     });
-
-    if (result.isConfirmed) {
-      try {
-        const { data } = await deleteContactMutation({
-          variables: {
-            id: contact.id,
-          },
-        });
-
-        router.push('/');
-
-        console.log('Contact delete:', data);
-        Swal.fire('Delete!', '', 'success');
-      } catch (error: any) {
-        console.error('Error deleting contact:', error.message);
-        Swal.fire(
-          'Error',
-          'An error occurred while deleting the contact.',
-          'error'
-        );
-      }
-    }
+    if (deleteContact) router.push('/');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEditFirstLastName = async (e: React.FormEvent) => {
     e.preventDefault();
     const firstName = firstNameRef.current?.value;
     const lastName = lastNameRef.current?.value;
-    try {
-      // const { data } = await addContactMutation({
-      //   variables: {
-      //     first_name: firstName,
-      //     last_name: lastName,
-      //     phones: phoneNumbers.map(phoneNumber => ({
-      //       number: phoneNumber,
-      //     })),
-      //   },
-      // });
+    if (firstName && lastName && firstName.length && lastName.length) {
+      const editContact: boolean = await _controllers.editFirstLastName({
+        dataContact: {
+          id: params.id,
+          firstName: firstName!,
+          lastName: lastName!,
+        },
+        method: editContactMutation({
+          variables: {
+            id: params.id,
+            _set: {
+              first_name: firstName,
+              last_name: lastName,
+            },
+          },
+        }),
+      });
 
-      // if (data) {
-      //   Swal.fire('Contact Added!', '', 'success');
-      //   router.push('/');
-      // }
-      console.log('Contact added:', data);
-    } catch (error: any) {
-      console.error('Error adding contact:', error.message);
-      Swal.fire(
-        'Error',
-        'An error occurred while deleting the contact.',
-        error.message
-      );
+      if (editContact) {
+        setEdit(false);
+      }
+    } else {
+      const result = await Swal.fire({
+        icon: 'error',
+        title: `First and Last Name Required`,
+      });
     }
   };
 
   const handleSavePhoneNumber = async () => {};
+
+  useEffect(() => {
+    if (data) {
+      setContact(data.contact_by_pk);
+      setPhoneNumbers(
+        data.contact_by_pk.phones.map(item => ({
+          number: item.number,
+          delete: false,
+        }))
+      );
+    }
+  }, [data]);
 
   if (loading) return <p>Load detail data...</p>;
   if (error) return <p>Error: {error.message}</p>;
@@ -127,6 +127,12 @@ const Page = () => {
         </p>
 
         <section className='flex gap-3 ml-auto'>
+          <button
+            onClick={() => handleDelete(contact!)}
+            className='icon bg-yellow-200 !rounded-full hover:bg-yellow-300'
+          >
+            <FaStar className='fill-white' />
+          </button>
           <button
             onClick={() => {
               setEdit(!edit);
@@ -168,7 +174,7 @@ const Page = () => {
                     className='mb-1'
                     name='number'
                     type='number'
-                    value={phoneNumber}
+                    value={phoneNumber.number}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handlePhoneNumberChange(index, e.target.value)
                     }
@@ -177,16 +183,18 @@ const Page = () => {
                   <div className='flex gap-1'>
                     <button
                       type='button'
+                      className='p-2'
                       onClick={() => handleSavePhoneNumber()}
                     >
-                      <FaSdCard />
+                      <FaSdCard className='fill-green' />
                     </button>
-                    {phoneNumber === '' && (
+                    {phoneNumber.delete && (
                       <button
                         type='button'
+                        className='p-2'
                         onClick={() => handleRemovePhoneNumber(index)}
                       >
-                        <FaTrash />
+                        <FaTrash className='fill-red-500' />
                       </button>
                     )}
                   </div>
@@ -203,7 +211,7 @@ const Page = () => {
           )}
         </section>
 
-        <form onSubmit={handleSubmit} className='flex-auto'>
+        <form onSubmit={handleEditFirstLastName} className='flex-auto'>
           <section>
             <div className=''>
               <p className='text-sm '>First Name</p>

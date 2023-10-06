@@ -5,6 +5,7 @@ interface ListContact {
   last_name: string;
   phones: {
     number: string;
+    delete?: boolean;
   }[];
   favorite?: boolean;
 }

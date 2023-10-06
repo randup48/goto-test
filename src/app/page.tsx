@@ -1,19 +1,9 @@
 'use client';
 
-import { DELETE_CONTACT, GET_CONTACT_LIST } from '@/const';
-import { useQuery, gql, QueryResult, useMutation } from '@apollo/client';
+import { GET_CONTACT_LIST } from '@/const';
+import { useQuery, QueryResult } from '@apollo/client';
 import { useEffect, useState } from 'react';
-import {
-  FaCircleChevronRight,
-  FaPen,
-  FaPlus,
-  FaStar,
-  FaTrash,
-  FaXmark,
-} from 'react-icons/fa6';
-import { AiOutlineStar } from 'react-icons/ai';
-import AddContactForm from './form/add-contact';
-import Swal from 'sweetalert2';
+import { FaCircleChevronRight, FaPlus } from 'react-icons/fa6';
 import Link from 'next/link';
 
 export default function Home() {
@@ -113,15 +103,17 @@ export default function Home() {
 
         <div className='w-fit mx-auto flex gap-3'>
           {Array.from({ length: Math.ceil(contactCount / 10) }, (_, index) => (
-            <a
+            <button
               className={`border ${
                 indexed === index ? 'bg-green' : ''
-              } rounded-lg px-4 py-2 cursor-pointer`}
+              } rounded-lg px-4 py-2 ${
+                indexed === index ? 'cursor-[unset]' : 'cursor-pointer'
+              } ${indexed === index ? 'hover:bg-green' : ''}`}
               key={index + 1}
               onClick={() => setIndexed(index)}
             >
-              <p> {index + 1}</p>
-            </a>
+              <p className='font-semibold'> {index + 1}</p>
+            </button>
           ))}
         </div>
       </section>
