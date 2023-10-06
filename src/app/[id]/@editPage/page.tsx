@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa6';
 import Swal from 'sweetalert2';
 import { EditPageController } from './controller';
+import { formFirstLastNameValidator, isIdInArray } from '@/function';
 
 type Props = {};
 
@@ -29,7 +30,6 @@ const Page = () => {
   const [phoneNumbers, setPhoneNumbers] = useState<
     { number: string; delete: boolean }[]
   >([{ number: '', delete: true }]);
-  const _controllers = new EditPageController();
 
   const {
     loading,
@@ -58,56 +58,155 @@ const Page = () => {
     setPhoneNumbers(updatedPhoneNumbers);
   };
 
-  const handleDelete = async (contact: ListContact) => {
-    const deleteContact: boolean = await _controllers.deleteContact({
-      dataContact: contact,
-      method: deleteContactMutation({
-        variables: {
-          id: contact.id,
-        },
-      }),
+  const handleDeleteContact = async (contact: ListContact) => {
+    const result = await Swal.fire({
+      icon: 'question',
+      title: `Do you want to delete ${contact.first_name}?`,
+      showCancelButton: true,
+      confirmButtonColor: 'red',
+      confirmButtonText: 'Delete',
+      focusCancel: true,
     });
-    if (deleteContact) router.push('/');
+
+    if (result.isConfirmed) {
+      try {
+        const { data } = await deleteContactMutation({
+          variables: {
+            id: contact.id,
+          },
+        });
+
+        console.log('Contact delete:', data);
+        if (data) {
+          Swal.fire('Delete!', '', 'success');
+          router.push('/');
+        }
+      } catch (error: any) {
+        console.error('Error delete contact:', error.message);
+        Swal.fire(
+          'Error',
+          'An error occurred while deleting the contact.',
+          'error'
+        );
+        return false;
+      }
+    }
   };
 
   const handleEditFirstLastName = async (e: React.FormEvent) => {
     e.preventDefault();
     const firstName = firstNameRef.current?.value;
     const lastName = lastNameRef.current?.value;
-    if (firstName && lastName && firstName.length && lastName.length) {
-      const editContact: boolean = await _controllers.editFirstLastName({
-        dataContact: {
-          id: params.id,
-          firstName: firstName!,
-          lastName: lastName!,
-        },
-        method: editContactMutation({
-          variables: {
-            id: params.id,
-            _set: {
-              first_name: firstName,
-              last_name: lastName,
-            },
-          },
-        }),
-      });
+    const validation = formFirstLastNameValidator({
+      firstName: firstName,
+      lastName: lastName,
+    });
 
-      if (editContact) {
-        setEdit(false);
+    if (validation) {
+      try {
+        const result = await Swal.fire({
+          title: `Do you want to change data?`,
+          showCancelButton: true,
+          focusCancel: true,
+        });
+
+        if (result.isConfirmed) {
+          try {
+            const { data } = await editContactMutation({
+              variables: {
+                id: params.id,
+                _set: {
+                  first_name: firstName,
+                  last_name: lastName,
+                },
+              },
+            });
+
+            console.log('Contact edit:', data);
+            if (data) {
+              Swal.fire('Edit!', '', 'success');
+              setEdit(false);
+            }
+          } catch (error: any) {
+            console.error('Error edit contact:', error.message);
+            Swal.fire(
+              'Error',
+              'An error occurred while editing the contact.',
+              'error'
+            );
+          }
+        }
+      } catch (error: any) {
+        console.error('Error editing contact:', error.message);
+        Swal.fire(
+          'Error',
+          'An error occurred while editing the contact.',
+          'error'
+        );
       }
-    } else {
-      const result = await Swal.fire({
-        icon: 'error',
-        title: `First and Last Name Required`,
-      });
+    }
+  };
+
+  const handleAddRemoveFavorite = async () => {
+    const result = await Swal.fire({
+      icon: 'question',
+      title: `Do you want to ${contact?.favorite ? 'unfavorite' : 'favorite'} ${
+        contact?.first_name
+      }?`,
+      showCancelButton: true,
+      // confirmButtonColor: 'yellow',
+      confirmButtonText: 'Yes',
+      focusCancel: true,
+    });
+
+    if (result.isConfirmed) {
+      const favContactsLocal: number[] =
+        JSON.parse(localStorage.getItem('favContact')!) || [];
+
+      if (
+        !isIdInArray({
+          array: favContactsLocal,
+          id: parseInt(params.id),
+        })
+      ) {
+        favContactsLocal.push(parseInt(params.id));
+        console.log('a', favContactsLocal);
+        localStorage.setItem('favContact', JSON.stringify(favContactsLocal));
+        Swal.fire('Favorite!', '', 'success');
+        setContact(prevContact => {
+          if (prevContact) {
+            return { ...prevContact, favorite: !prevContact.favorite };
+          }
+          return prevContact;
+        });
+      } else {
+        localStorage.setItem(
+          'favContact',
+          JSON.stringify(favContactsLocal.filter(item => item !== contact?.id))
+        );
+        Swal.fire('Unfavorite!', '', 'success');
+        setContact(prevContact => {
+          if (prevContact) {
+            return { ...prevContact, favorite: !prevContact.favorite };
+          }
+          return prevContact;
+        });
+      }
     }
   };
 
   const handleSavePhoneNumber = async () => {};
 
   useEffect(() => {
+    const favContactsLocal =
+      JSON.parse(localStorage.getItem('favContact')!) || [];
+    const checkFavorite = isIdInArray({
+      array: favContactsLocal,
+      id: parseInt(params.id),
+    });
+
     if (data) {
-      setContact(data.contact_by_pk);
+      setContact({ ...data.contact_by_pk, favorite: checkFavorite });
       setPhoneNumbers(
         data.contact_by_pk.phones.map(item => ({
           number: item.number,
@@ -115,7 +214,7 @@ const Page = () => {
         }))
       );
     }
-  }, [data]);
+  }, [data, params.id]);
 
   if (loading) return <p>Load detail data...</p>;
   if (error) return <p>Error: {error.message}</p>;
@@ -128,10 +227,12 @@ const Page = () => {
 
         <section className='flex gap-3 ml-auto'>
           <button
-            onClick={() => handleDelete(contact!)}
+            onClick={handleAddRemoveFavorite}
             className='icon bg-yellow-200 !rounded-full hover:bg-yellow-300'
           >
-            <FaStar className='fill-white' />
+            <FaStar
+              className={contact?.favorite ? 'fill-brown' : 'fill-white'}
+            />
           </button>
           <button
             onClick={() => {
@@ -146,7 +247,7 @@ const Page = () => {
             )}
           </button>
           <button
-            onClick={() => handleDelete(contact!)}
+            onClick={() => handleDeleteContact(contact!)}
             className='icon bg-red-400 !rounded-full hover:bg-red-500'
           >
             <FaTrash className='fill-white' />
@@ -203,9 +304,12 @@ const Page = () => {
               <button
                 type='button'
                 onClick={handleAddPhoneNumber}
-                className='px-1'
+                className='px-1 hover:bg-[unset]'
               >
-                <FaPlus /> Phone Number
+                <p>
+                  <FaPlus />
+                </p>
+                <p> Phone Number</p>
               </button>
             </>
           )}

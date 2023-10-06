@@ -1,16 +1,11 @@
 import Swal from 'sweetalert2';
 
 type ParamsDelete = {
-  dataContact: ListContact;
+  first_name: string;
   method: any;
 };
 
 type ParamsEditName = {
-  dataContact: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
   method: any;
 };
 
@@ -19,7 +14,8 @@ export class EditPageController {
     params: ParamsDelete
   ) => {
     const result = await Swal.fire({
-      title: `Do you want to delete ${params.dataContact.first_name}?`,
+      icon: 'question',
+      title: `Do you want to delete ${params.first_name}?`,
       showCancelButton: true,
       confirmButtonColor: 'red',
       confirmButtonText: 'Delete',
@@ -77,7 +73,15 @@ export class EditPageController {
           return false;
         }
       }
-    } catch (error) {}
+    } catch (error: any) {
+      console.error('Error editing contact:', error.message);
+      Swal.fire(
+        'Error',
+        'An error occurred while editing the contact.',
+        'error'
+      );
+      return false;
+    }
     return false;
   };
 }

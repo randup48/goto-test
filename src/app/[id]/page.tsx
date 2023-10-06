@@ -8,7 +8,7 @@ const Page = () => {
   return (
     <section>
       <Link href={'/'}>
-        <button className='mb-3 ml-[-18px]'>
+        <button className='mb-3 ml-[-18px] hover:bg-[unset]'>
           <p>
             <FaChevronLeft />
           </p>

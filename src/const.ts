@@ -100,6 +100,23 @@ const ADD_CONTACT = gql`
   }
 `;
 
+const ADD_NUMBER_TO_CONTACT = gql`
+  mutation AddNumberToContact($contact_id: Int!, $phone_number: String!) {
+    insert_phone(objects: { contact_id: $contact_id, number: $phone_number }) {
+      returning {
+        contact {
+          id
+          last_name
+          first_name
+          phones {
+            number
+          }
+        }
+      }
+    }
+  }
+`;
+
 const EDIT_CONTACT = gql`
   mutation EditContactById($id: Int!, $_set: contact_set_input) {
     update_contact_by_pk(pk_columns: { id: $id }, _set: $_set) {
@@ -108,6 +125,28 @@ const EDIT_CONTACT = gql`
       last_name
       phones {
         number
+      }
+    }
+  }
+`;
+
+const EDIT_PHONE_NUMBER = gql`
+  mutation EditPhoneNumber(
+    $pk_columns: phone_pk_columns_input!
+    $new_phone_number: String!
+  ) {
+    update_phone_by_pk(
+      pk_columns: $pk_columns
+      _set: { number: $new_phone_number }
+    ) {
+      contact {
+        id
+        last_name
+        first_name
+        created_at
+        phones {
+          number
+        }
       }
     }
   }
@@ -128,6 +167,8 @@ export {
   GET_CONTACT_DETAIL,
   GET_PHONE_LIST,
   ADD_CONTACT,
+  ADD_NUMBER_TO_CONTACT,
   EDIT_CONTACT,
+  EDIT_PHONE_NUMBER,
   DELETE_CONTACT,
 };

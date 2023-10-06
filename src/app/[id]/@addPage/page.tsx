@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import React, { ChangeEvent, useRef, useState } from 'react';
 import { FaPlus, FaTrash } from 'react-icons/fa6';
 import Swal from 'sweetalert2';
+import { AddPageController } from './controller';
+import { formFirstLastNameValidator } from '@/function';
 
 const Page = () => {
   const router = useRouter();
@@ -13,6 +15,7 @@ const Page = () => {
   const lastNameRef = useRef<HTMLInputElement | null>(null);
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>(['']);
   const [addContactMutation] = useMutation(ADD_CONTACT);
+  const _controllers = new AddPageController();
 
   const handlePhoneNumberChange = (index: number, value: string) => {
     const updatedPhoneNumbers = [...phoneNumbers];
@@ -33,29 +36,37 @@ const Page = () => {
     e.preventDefault();
     const firstName = firstNameRef.current?.value;
     const lastName = lastNameRef.current?.value;
-    try {
-      const { data } = await addContactMutation({
-        variables: {
-          first_name: firstName,
-          last_name: lastName,
-          phones: phoneNumbers.map(phoneNumber => ({
-            number: phoneNumber,
-          })),
-        },
-      });
 
-      if (data) {
-        Swal.fire('Contact Added!', '', 'success');
-        router.push('/');
+    const validation = formFirstLastNameValidator({
+      firstName: firstName,
+      lastName: lastName,
+    });
+
+    if (validation) {
+      try {
+        const { data } = await addContactMutation({
+          variables: {
+            first_name: firstName,
+            last_name: lastName,
+            phones: phoneNumbers.map(phoneNumber => ({
+              number: phoneNumber,
+            })),
+          },
+        });
+
+        console.log('Contact Add:', data);
+        if (data) {
+          Swal.fire('Add!', '', 'success');
+          router.push('/');
+        }
+      } catch (error: any) {
+        console.error('Error add contact:', error.message);
+        Swal.fire(
+          'Error',
+          'An error occurred while adding the contact.',
+          'error'
+        );
       }
-      console.log('Contact added:', data);
-    } catch (error: any) {
-      console.error('Error adding contact:', error.message);
-      Swal.fire(
-        'Error',
-        'An error occurred while deleting the contact.',
-        error.message
-      );
     }
   };
   return (
@@ -91,9 +102,12 @@ const Page = () => {
             <button
               type='button'
               onClick={handleAddPhoneNumber}
-              className='px-1'
+              className='px-1 hover:bg-[unset]'
             >
-              <FaPlus /> Phone Number
+              <p>
+                <FaPlus />
+              </p>
+              <p> Phone Number</p>
             </button>
           </section>
           <section className='flex-auto'>
