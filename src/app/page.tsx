@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa6';
 import Link from 'next/link';
 import { isIdInArray } from '@/function';
+import Swal from 'sweetalert2';
 
 export default function Home() {
   const [indexed, setIndexed] = useState(0);
@@ -30,12 +31,7 @@ export default function Home() {
   }: QueryResult<{
     contact: ListContact[];
     contact_aggregate: JumlahContact;
-  }> = useQuery(GET_CONTACT_LIST, {
-    variables: {
-      limit: 10,
-      offset: indexed * 10,
-    },
-  });
+  }> = useQuery(GET_CONTACT_LIST);
 
   const {
     loading: loadSearch,
@@ -43,37 +39,16 @@ export default function Home() {
     data: dataSearch,
     refetch: refetchSearch,
   }: QueryResult<{
-    phone: ListContact[];
+    phone: SearchContact[];
     phone_aggregate: JumlahContact;
-  }> = useQuery(GET_PHONE_LIST, {
-    variables: {
-      where: {
-        contact: {
-          first_name: {
-            _like: `%${searchRef.current?.value ?? ''}%`,
-          },
-        },
-      },
-    },
-  });
+  }> = useQuery(GET_PHONE_LIST);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const favContactsLocal =
       JSON.parse(localStorage.getItem('favContact')!) || [];
 
-    if (dataSearch) {
-      const modifiedContact = dataSearch.phone.map(item => ({
-        ...item,
-        favorite: isIdInArray({ array: favContactsLocal, id: item.id })
-          ? true
-          : false,
-      }));
-
-      setData({
-        contact: modifiedContact,
-        contact_aggregate: dataSearch.phone_aggregate,
-      });
-      refetchSearch({
+    try {
+      const fetch1 = await refetchSearch({
         where: {
           contact: {
             first_name: {
@@ -82,7 +57,81 @@ export default function Home() {
           },
         },
       });
+      const fetch2 = await refetchSearch({
+        where: {
+          contact: {
+            last_name: {
+              _like: `%${searchRef.current?.value ?? ''}%`,
+            },
+          },
+        },
+      });
+
+      const mergeFetch: {
+        phone: SearchContact[];
+        phone_aggregate: JumlahContact;
+      } = {
+        phone: [...fetch1.data.phone, ...fetch2.data.phone],
+        phone_aggregate: {
+          aggregate: {
+            count:
+              fetch1.data.phone_aggregate.aggregate.count +
+              fetch2.data.phone_aggregate.aggregate.count,
+          },
+        },
+      };
+
+      console.log('mergeFetch', mergeFetch);
+
+      const modifiedDataSearch: ListContact[] = mergeFetch.phone.map(item => ({
+        id: item.contact.id,
+        created_at: item.contact.created_at,
+        first_name: item.contact.first_name,
+        last_name: item.contact.last_name,
+        phones: item.contact.phones,
+        favorite: isIdInArray({
+          array: favContactsLocal,
+          id: item.contact.id,
+        })
+          ? true
+          : false,
+      }));
+
+      if (searchRef.current?.value) {
+        setData({
+          contact: modifiedDataSearch,
+          contact_aggregate: mergeFetch.phone_aggregate ?? {
+            aggregate: { count: 0 },
+          },
+        });
+      } else {
+        setData({
+          contact: fetch1.data.phone.map(item => ({
+            id: item.contact.id,
+            created_at: item.contact.created_at,
+            first_name: item.contact.first_name,
+            last_name: item.contact.last_name,
+            phones: item.contact.phones,
+            favorite: isIdInArray({
+              array: favContactsLocal,
+              id: item.contact.id,
+            })
+              ? true
+              : false,
+          })),
+          contact_aggregate: fetch1.data.phone_aggregate,
+        });
+      }
+    } catch (error) {
+      console.error('Error search data:', error);
+      Swal.fire(
+        'Error',
+        'An error occurred while searching the contact.',
+        'error'
+      );
     }
+
+    console.log('fetch', fetch);
   };
 
   useEffect(() => {
@@ -128,6 +177,7 @@ export default function Home() {
       <section className='flex w-fit mx-auto mb-5'>
         <input
           className='px-5 py-3 rounded-lg sm:w-full'
+          ref={searchRef}
           type='text'
           name=''
           id=''
@@ -192,9 +242,9 @@ export default function Home() {
           {contactList.filter(contact => !contact.favorite).length ? (
             contactList
               .filter(contact => !contact.favorite)
-              .map(contact => (
+              .map((contact, index) => (
                 <div
-                  key={contact.id}
+                  key={index}
                   className='grid items-center gap-3 grid-cols-[48px_1fr_auto] mb-3 sm:mb-0 rounded-lg'
                 >
                   <p className='text-xl font-bold bg-green flex items-center justify-center rounded-full aspect-square'>

@@ -10,6 +10,10 @@ interface ListContact {
   favorite?: boolean;
 }
 
+interface SearchContact {
+  contact: ListContact;
+}
+
 interface JumlahContact {
   aggregate: { count: number };
 }

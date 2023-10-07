@@ -1,6 +1,12 @@
 'use client';
 
-import { DELETE_CONTACT, EDIT_CONTACT, GET_CONTACT_DETAIL } from '@/const';
+import {
+  ADD_NUMBER_TO_CONTACT,
+  DELETE_CONTACT,
+  EDIT_CONTACT,
+  EDIT_PHONE_NUMBER,
+  GET_CONTACT_DETAIL,
+} from '@/const';
 import { QueryResult, useMutation, useQuery } from '@apollo/client';
 import { useParams, useRouter } from 'next/navigation';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
@@ -23,8 +29,10 @@ const Page = () => {
   const router = useRouter();
   const [edit, setEdit] = useState(false);
   const [contact, setContact] = useState<ListContact>();
+  const [addPhonetMutation] = useMutation(ADD_NUMBER_TO_CONTACT);
   const [deleteContactMutation] = useMutation(DELETE_CONTACT);
   const [editContactMutation] = useMutation(EDIT_CONTACT);
+  const [editPhonetMutation] = useMutation(EDIT_PHONE_NUMBER);
   const firstNameRef = useRef<HTMLInputElement | null>(null);
   const lastNameRef = useRef<HTMLInputElement | null>(null);
   const [phoneNumbers, setPhoneNumbers] = useState<
@@ -195,7 +203,78 @@ const Page = () => {
     }
   };
 
-  const handleSavePhoneNumber = async () => {};
+  const handleSavePhoneNumber = async (
+    newPhoneNumber: boolean,
+    prev: string,
+    now: string
+  ) => {
+    if (!newPhoneNumber) {
+      const result = await Swal.fire({
+        icon: 'question',
+        title: `Do you want to change the phone number?`,
+        showCancelButton: true,
+        focusCancel: true,
+      });
+
+      if (result.isConfirmed) {
+        try {
+          const { data } = await editPhonetMutation({
+            variables: {
+              pk_columns: {
+                number: prev,
+                contact_id: params.id,
+              },
+              new_phone_number: now,
+            },
+          });
+
+          console.log('Contact edit:', data);
+          if (data) {
+            Swal.fire('Edit!', '', 'success');
+          }
+        } catch (error: any) {
+          console.error('Error edit phone:', error.message);
+          Swal.fire(
+            'Error',
+            'An error occurred while editing the phone.',
+            'error'
+          );
+          return false;
+        }
+      }
+    } else {
+      const result = await Swal.fire({
+        icon: 'question',
+        title: `Do you want to add new phone number?`,
+        showCancelButton: true,
+        focusCancel: true,
+      });
+
+      if (result.isConfirmed) {
+        try {
+          const { data } = await addPhonetMutation({
+            variables: {
+              contact_id: params.id,
+              phone_number: now,
+            },
+          });
+
+          console.log('Contact edit:', data);
+          if (data) {
+            Swal.fire('Add!', '', 'success');
+          }
+        } catch (error: any) {
+          console.error('Error add phone:', error.message);
+          Swal.fire(
+            'Error',
+            'An error occurred while adding the phone.',
+            'error'
+          );
+          return false;
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     const favContactsLocal =
@@ -285,7 +364,13 @@ const Page = () => {
                     <button
                       type='button'
                       className='p-2'
-                      onClick={() => handleSavePhoneNumber()}
+                      onClick={() =>
+                        handleSavePhoneNumber(
+                          phoneNumber.delete,
+                          data?.contact_by_pk.phones[index]?.number ?? '',
+                          phoneNumbers[index].number
+                        )
+                      }
                     >
                       <FaSdCard className='fill-green' />
                     </button>

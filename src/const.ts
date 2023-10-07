@@ -61,11 +61,14 @@ const GET_PHONE_LIST = gql`
       order_by: $order_by
     ) {
       contact {
-        last_name
+        created_at
         first_name
         id
+        last_name
+        phones {
+          number
+        }
       }
-      number
     }
     phone_aggregate(where: $where) {
       aggregate {
